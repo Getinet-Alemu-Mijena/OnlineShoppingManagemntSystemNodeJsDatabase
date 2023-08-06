@@ -1,5 +1,6 @@
 const express = require("express");
 const mysql = require("mysql2");
+const multer = require("multer");
 
 const app = express();
 const port = 3050;
@@ -158,7 +159,7 @@ app.get("/UserId/:userName", (req, res) => {
 });
 //End of quering user id
 
-//Start of adding a product 
+// Start of adding a product 
 app.post("/addProduct", (req, res) => {
   let {
     productName,
@@ -198,10 +199,12 @@ app.post("/addProduct", (req, res) => {
     userManual,
     produtQuantity,
     produtWeight,
-    produtImage
+    produtImage,
+    images,
+    UserId
   } = req.body;
   connection.query(
-    "INSERT INTO `electronics`(`Product_Name`,`Product_Type`,`Produt_Price`,`Produt_Description`,`Product_Brand`,`Product_Model`,`Screen_Size`,`Resolution`,`Memory_Capacity`,`Operating_System`,`Battery_Life`,`Camera_Specifications`,`Audio_Features`,`Processor`,`Installed_RAM`,`System_Type`,`Pen_and _Touch`,`Edition`,`Version`,`Installed_On`,`OS_build`,`Serial_Number`,`Exprience`,`Connectivity_Option`,`Power_Requirements`,`Warranty`,`Dimensions`,`Inputs_Outputs`,`Compatibility`,`Accessories`,`Reviews`,`Availability`,`Ratings`,`Energy_Efficiency`,`User_Manual`,`Produt_Quantity`,`Produt_Weight`,`ProdutImage`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+    "INSERT INTO `electronics`(`Product_Name`,`Product_Type`,`Produt_Price`,`Produt_Description`,`Product_Brand`,`Product_Model`,`Screen_Size`,`Resolution`,`Memory_Capacity`,`Operating_System`,`Battery_Life`,`Camera_Specifications`,`Audio_Features`,`Processor`,`Installed_RAM`,`System_Type`,`Pen_and _Touch`,`Edition`,`Version`,`Installed_On`,`OS_build`,`Serial_Number`,`Exprience`,`Connectivity_Option`,`Power_Requirements`,`Warranty`,`Dimensions`,`Inputs_Outputs`,`Compatibility`,`Accessories`,`Reviews`,`Availability`,`Ratings`,`Energy_Efficiency`,`User_Manual`,`Produt_Quantity`,`Produt_Weight`,`ProdutImage`,`ProdutsImage`,`ProductOwner`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
     [  productName,
       produtType,
       productPrice,
@@ -239,7 +242,9 @@ app.post("/addProduct", (req, res) => {
       userManual,
       produtQuantity,
       produtWeight,
-      produtImage
+      produtImage,
+      images,
+      UserId
     ],
     (error, results) => {
       if (error) throw error;
@@ -252,4 +257,91 @@ app.post("/addProduct", (req, res) => {
     }
   );
 });
+
+// code to upload file
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(
+      null,
+      "C:/Users/user/Desktop/Angular-Folder/EcommerceProject/OnlineShoppingManagementSystem/src/assets/Images/"
+      // C:\Users\user\Desktop\Angular-Folder\EcommerceProject\OnlineShoppingManagementSystem
+      // C:/Users/mikiyas/Desktop/House-Rental-Mangement-System/src/assets/House_Image/
+    ); // specify the upload directory
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname); // use the original file name
+  },
+});
+
+const upload = multer({ storage: storage });
+
+app.post("/uploadImage", upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).send("No file uploaded.");
+  }
+  res.send("File uploaded successfully.");
+});
+
+
+//check if the product already exists
+
+app.get("/checkProducts/:productname/:serialnumber", (req, res) => {
+  const productName = req.params.productname;
+  const serialNumber = req.params.serialnumber;
+  connection.query(
+    `SELECT * FROM electronics WHERE Product_Name = '${productName}' OR Serial_Number = '${serialNumber}'`,
+    (error, results) => {
+      if (error) throw error;
+      if (results.length > 0) {
+        res.json({
+          message: "Product already exists"
+        });
+      } else {
+        res.json({
+          message: "Product does not exist"
+        });
+      }
+    }
+  );
+});
+
+
+
+
 //End of adding a product 
+
+//start of sellecting seller products
+// app.get("/getProductImages/:userId", (req, res) => {
+//   const userId = req.params.userId;
+
+//   connection.query(
+//     `SELECT ProdutImage FROM electronics WHERE ProductOwner = ?`, // Change to your actual column name
+//     [userId],
+//     (error, results) => {
+//       if (error) {
+//         res.statusCode = 500;
+//         res.json({ error: 'Internal Server Error' });
+//       } else {
+//         res.json(results);
+//       }
+//     }
+//   );
+// });
+//get all the products
+app.get("/getProducts/:userId", (req, res) => {
+  const userId = req.params.userId;
+  connection.query(
+    `SELECT Id, Product_Name, Product_Type, Produt_Price, ProdutImage FROM electronics WHERE ProductOwner = ?`,
+    [userId],
+    (error, results) => {
+      if (error) {
+        res.status(500).json({ error: 'Internal Server Error' });
+      } else {
+        res.json(results);
+      }
+    }
+  );
+});
+
+
+
