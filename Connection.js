@@ -163,6 +163,8 @@ app.get("/UserId/:userName", (req, res) => {
 app.post("/addProduct", (req, res) => {
   let {
     productName,
+    aboutthisproduct,
+    productCategory,
     produtType,
     productPrice,
     produtDescription,
@@ -203,9 +205,12 @@ app.post("/addProduct", (req, res) => {
     images,
     UserId
   } = req.body;
+  const imagesString = JSON.stringify(images); // Convert the array to a JSON string
   connection.query(
-    "INSERT INTO `electronics`(`Product_Name`,`Product_Type`,`Produt_Price`,`Produt_Description`,`Product_Brand`,`Product_Model`,`Screen_Size`,`Resolution`,`Memory_Capacity`,`Operating_System`,`Battery_Life`,`Camera_Specifications`,`Audio_Features`,`Processor`,`Installed_RAM`,`System_Type`,`Pen_and _Touch`,`Edition`,`Version`,`Installed_On`,`OS_build`,`Serial_Number`,`Exprience`,`Connectivity_Option`,`Power_Requirements`,`Warranty`,`Dimensions`,`Inputs_Outputs`,`Compatibility`,`Accessories`,`Reviews`,`Availability`,`Ratings`,`Energy_Efficiency`,`User_Manual`,`Produt_Quantity`,`Produt_Weight`,`ProdutImage`,`ProdutsImage`,`ProductOwner`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-    [  productName,
+    "INSERT INTO `products`(`Product_Name`, `AboutThisProduct`,`ProductCategory`,`Product_Type`,`Produt_Price`,`Produt_Description`,`Product_Brand`,`Product_Model`,`Screen_Size`,`Resolution`,`Memory_Capacity`,`Operating_System`,`Battery_Life`,`Camera_Specifications`,`Audio_Features`,`Processor`,`Installed_RAM`,`System_Type`,`PenAndTouch`,`Edition`,`Version`,`Installed_On`,`OS_build`,`Serial_Number`,`Exprience`,`Connectivity_Option`,`Power_Requirements`,`Warranty`,`Dimensions`,`Inputs_Outputs`,`Compatibility`,`Accessories`,`Reviews`,`Availability`,`Ratings`,`Energy_Efficiency`,`User_Manual`,`Produt_Quantity`,`Produt_Weight`,`ProdutImage`,`ProdutsImage`,`ProductOwner`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+    [productName,
+      aboutthisproduct,
+      productCategory,
       produtType,
       productPrice,
       produtDescription,
@@ -243,7 +248,7 @@ app.post("/addProduct", (req, res) => {
       produtQuantity,
       produtWeight,
       produtImage,
-      images,
+      imagesString,
       UserId
     ],
     (error, results) => {
@@ -265,15 +270,16 @@ const storage = multer.diskStorage({
       null,
       "C:/Users/user/Desktop/Angular-Folder/EcommerceProject/OnlineShoppingManagementSystem/src/assets/Images/"
       // C:\Users\user\Desktop\Angular-Folder\EcommerceProject\OnlineShoppingManagementSystem
-      // C:/Users/mikiyas/Desktop/House-Rental-Mangement-System/src/assets/House_Image/
-    ); // specify the upload directory
+    );
   },
   filename: function (req, file, cb) {
     cb(null, file.originalname); // use the original file name
   },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: storage
+});
 
 app.post("/uploadImage", upload.single("file"), (req, res) => {
   if (!req.file) {
@@ -282,6 +288,29 @@ app.post("/uploadImage", upload.single("file"), (req, res) => {
   res.send("File uploaded successfully.");
 });
 
+//Code to upload multiple product
+const upload1 = multer({
+  storage: storage
+});
+
+app.post("/uploadImages", upload1.array("files"), (req, res) => {
+  // console.log("Request received");
+  // console.log("Uploaded files:", req.files);
+
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).send("No files uploaded.");
+  }
+
+  // Handle each uploaded file
+  for (const file of req.files) {
+    console.log(`File ${file.originalname} uploaded.`);
+    // You can further process each uploaded file here
+  }
+
+  res.send("Files uploaded successfully.");
+});
+
+
 
 //check if the product already exists
 
@@ -289,7 +318,7 @@ app.get("/checkProducts/:productname/:serialnumber", (req, res) => {
   const productName = req.params.productname;
   const serialNumber = req.params.serialnumber;
   connection.query(
-    `SELECT * FROM electronics WHERE Product_Name = '${productName}' OR Serial_Number = '${serialNumber}'`,
+    `SELECT * FROM products WHERE Product_Name = '${productName}' OR Serial_Number = '${serialNumber}'`,
     (error, results) => {
       if (error) throw error;
       if (results.length > 0) {
@@ -310,38 +339,131 @@ app.get("/checkProducts/:productname/:serialnumber", (req, res) => {
 
 //End of adding a product 
 
-//start of sellecting seller products
-// app.get("/getProductImages/:userId", (req, res) => {
-//   const userId = req.params.userId;
-
-//   connection.query(
-//     `SELECT ProdutImage FROM electronics WHERE ProductOwner = ?`, // Change to your actual column name
-//     [userId],
-//     (error, results) => {
-//       if (error) {
-//         res.statusCode = 500;
-//         res.json({ error: 'Internal Server Error' });
-//       } else {
-//         res.json(results);
-//       }
-//     }
-//   );
-// });
 //get all the products
 app.get("/getProducts/:userId", (req, res) => {
   const userId = req.params.userId;
   connection.query(
-    `SELECT Id, Product_Name, Product_Type, Produt_Price, ProdutImage FROM electronics WHERE ProductOwner = ?`,
+    `SELECT Id, Product_Name, Product_Type, Produt_Price, Produt_Quantity, Product_Brand, Product_Model, ProdutImage  FROM products WHERE ProductOwner = ?`,
     [userId],
     (error, results) => {
       if (error) {
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({
+          error: 'Internal Server Error'
+        });
       } else {
         res.json(results);
       }
     }
   );
 });
+
+//code to query product detail from database
+// Your existing code
+app.get("/product", (req, res) => {
+  const productId = req.query.id;
+  connection.query(
+    `SELECT * FROM products WHERE Id = '${productId}'`,
+    (error, results) => {
+      if (error) {
+        res.status(500).json({
+          error: 'Internal Server Error'
+        });
+      } else {
+        if (results.length > 0) {
+          res.json(results[0]);
+        } else {
+          res.status(404).json({
+            message: 'Product not found'
+          });
+        }
+      }
+    }
+  );
+});
+
+//code to update product properties
+
+app.put("/updateProduct/:productId", (req, res) => {
+  const productId = req.params.productId;
+  // const userId = req.params.userId;
+  const updatedProduct = req.body; // Assuming the updated product data is sent in the request body
+
+  connection.query(
+    `UPDATE products SET ? WHERE Id = ?`,
+    [updatedProduct, productId],
+    (error, results) => {
+      if (error) {
+        console.error("Error updating product: ", error);
+        res.status(500).json({ message: "Failed to update product" });
+      } else {
+        if (results.affectedRows > 0) {
+          res.json({ message: "Product updated successfully" });
+        } else {
+          res.status(404).json({ message: "Product not found" });
+        }
+      }
+    }
+  );
+});
+
+// Delete product route
+app.delete('/deleteProduct/:productId', (req, res) => {
+  const productId = req.params.productId;
+
+  connection.query(
+    'DELETE FROM products WHERE Id = ?',
+    [productId],
+    (error, results) => {
+      if (error) {
+        console.error('Error deleting product: ', error);
+        res.status(500).json({ message: 'Failed to delete product' });
+      } else {
+        if (results.affectedRows > 0) {
+          res.json({ message: 'Product deleted successfully' });
+        } else {
+          res.status(404).json({ message: 'Product not found' });
+        }
+      }
+    }
+  );
+});
+app.get('/subProducts/:productId', (req, res) => {
+  const productId = req.params.productId;
+  const query = 'SELECT ProdutsImage FROM products WHERE Id = ?';
+
+  connection.query(query, [productId], (error, results) => {
+    if (error) {
+      console.error('Error fetching sub-product images:', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ message: 'Sub-product images not found' });
+    }
+
+    const productImages = results[0].ProdutsImage;
+    res.json({ ProdutsImage: productImages });
+  });
+});
+// loadAllProducts
+app.get("/loadAllProducts", (req, res) => {
+  const query = "SELECT * FROM products";
+
+  connection.query(query, (error, results) => {
+    if (error) {
+      console.error(error);
+      res.status(500).json({ error: "An error occurred while fetching product data." });
+    } else {
+      res.json(results);
+    }
+  });
+});
+
+
+
+
+
+
 
 
 
