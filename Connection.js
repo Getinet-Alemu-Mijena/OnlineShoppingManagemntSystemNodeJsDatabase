@@ -43,13 +43,14 @@ app.post("/insertCustomer", (req, res) => {
     Roll,
     Gender,
     Age,
-    passw
+    passw,
+    Balance
   } = req.body;
   connection.query(
     // First_Name	Last_Name	User_Name	Email_Address	Phone_Number	Gender	Age	Password	Balance	Id	
 
-    "INSERT INTO `account`(`First_Name`, `Last_Name`, `User_Name`, `Email_Address`, `Phone_Number`, `Roll`, `Gender`, `Age`, `Password`) VALUES (?,?,?,?,?,?,?,?,?)",
-    [fname, lname, userName, emailAddress, phoneN, Roll, Gender, Age, passw],
+    "INSERT INTO `account`(`First_Name`, `Last_Name`, `User_Name`, `Email_Address`, `Phone_Number`, `Roll`, `Gender`, `Age`, `Password`,`Balance`) VALUES (?,?,?,?,?,?,?,?,?,?)",
+    [fname, lname, userName, emailAddress, phoneN, Roll, Gender, Age, passw,Balance],
     (error, results) => {
       if (error) throw error;
       res
@@ -455,6 +456,278 @@ app.get("/loadAllProducts", (req, res) => {
       res.status(500).json({ error: "An error occurred while fetching product data." });
     } else {
       res.json(results);
+    }
+  });
+});
+//Code to add data to carts table
+app.post("/addToCart", (req, res) => {
+  const product = req.body;
+
+  const query = `
+    INSERT INTO cart (ProductOwner, ProductId, CustomerId, ProductPrice, ProductQuantity, DateAdded, ProductCategory, ProductType,status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?,?)
+  `;
+
+  connection.query(
+    query,
+    [
+      product.ProductOwner,
+      product.ProductId,
+      product.CustomerId,
+      product.ProductPrice,
+      product.ProductQuantity,
+      product.DateAdded,
+      product.ProductCategory,
+      product.ProductType,
+      product.status
+    ],
+    (error, results) => {
+      if (error) {
+        console.error("Error adding item to cart", error);
+        res.status(500).json({ error: "Error adding item to cart" });
+      } else {
+        res.status(200).json({ message: "Item added to cart successfully" });
+      }
+    }
+  );
+});
+
+//Code to update product quantity
+// Update product quantity
+app.put('/updateProductQuantity/:productId', (req, res) => {
+  const productId = req.params.productId;
+  const newQuantity = req.body.quantity;
+
+  // Update the product quantity in the database
+  const sql = 'UPDATE products SET Produt_Quantity = ? WHERE id = ?';
+  connection.query(sql, [newQuantity, productId], (err, result) => {
+    if (err) {
+      console.error('Error updating product quantity:', err);
+      res.status(500).send('Error updating product quantity');
+    } else {
+      res.status(200).send('Product quantity updated successfully');
+    }
+  });
+});
+//Update the product availablity
+app.put('/updateProductAvailability/:productId', (req, res) => {
+  const productId = req.params.productId;
+  const newQuantity = req.body.Availability;
+
+  // Update the product quantity in the database
+  const sql = 'UPDATE products SET Availability = ? WHERE id = ?';
+  connection.query(sql, [newQuantity, productId], (err, result) => {
+    if (err) {
+      console.error('Error updating product quantity:', err);
+      res.status(500).send('Error updating product quantity');
+    } else {
+      res.status(200).send('Product quantity updated successfully');
+    }
+  });
+});
+
+//Get Carts Data	
+app.get("/getCartsData/:userId", (req, res) => {
+  const userId = req.params.userId;
+  connection.query(
+    `SELECT ProductOwner, ProductId, CustomerId, ProductPrice, ProductQuantity, DateAdded, ProductCategory, ProductType, Id FROM cart WHERE CustomerId = ? AND status = 'unpaid'`,
+    [userId],
+    (error, results) => {
+      if (error) {
+        res.status(500).json({
+          error: 'Internal Server Error'
+        });
+      } else {
+        res.json(results);
+      }
+    }
+  );
+});
+
+//Get customer Balance 
+app.get("/customerBalance/:userId", (req, res) => {
+  const user_Id = req.params.userId;
+
+  connection.query(
+    `SELECT Balance FROM account WHERE  Id = '${user_Id}'`,
+    (error, results) => {
+      if (error) throw error;
+      if (results.length > 0) {
+        res.json({
+          message: "Customer Balance exists",
+          Ids: results[0].Balance
+        });
+      } else {
+        res.json({
+          message: "User does not exist"
+        });
+      }
+    }
+  );
+});
+
+//update customer balance
+app.put('/updateCustomerBalance/:userId', (req, res) => {
+  const newQuantity = req.body.updated_Customer_Balance;
+  const user_Id = req.params.userId;
+
+  const sql = 'UPDATE account SET Balance = ? WHERE Id = ?';
+  connection.query(sql, [newQuantity, user_Id], (err, result) => {
+    if (err) {
+      console.error('Error updating Customer Balance', err);
+      res.status(500).json({ error: 'Error updating Customer Balance' });
+    } else {
+      res.status(200).json({ message: 'Customer Balance updated successfully' });
+    }
+  });
+});
+
+
+//Product owner balance
+app.get("/ProductOwnerBalance/:productOwner", (req, res) => {
+  const product_Owner = req.params.productOwner;
+
+  connection.query(
+    `SELECT Balance FROM account WHERE  Id = '${product_Owner}'`,
+    (error, results) => {
+      if (error) throw error;
+      if (results.length > 0) {
+        res.json({
+          message: "Product Owner Balance exists",
+          Ids: results[0].Balance
+        });
+      } else {
+        res.json({
+          message: "User does not exist"
+        });
+      }
+    }
+  );
+});
+
+//update product owner balance
+app.put('/updateProductOwnerBalance/:productId', (req, res) => {
+  const productId = req.params.productId;
+  const newQuantity = req.body.updated_Product_Owner_Balance;
+
+  const sql = 'UPDATE account SET Balance = ? WHERE id = ?';
+  connection.query(sql, [newQuantity, productId], (err, result) => {
+    if (err) {
+      console.error('Error updating product owner balance:', err);
+      res.status(500).send('Error updating product owner balance:');
+    } else {
+      res.status(200).send('Product owner balance updated successfully');
+    }
+  });
+});
+
+app.get("/systemOwnerBalance", (req, res) => {
+  // const user_Id = req.params.userId;
+
+  connection.query(
+    `SELECT Balance FROM account WHERE  Roll = 'Admin'`,
+    (error, results) => {
+      if (error) throw error;
+      if (results.length > 0) {
+        res.json({
+          message: "System Owner Balance exists",
+          Ids: results[0].Balance
+        });
+      } else {
+        res.json({
+          message: "User does not exist"
+        });
+      }
+    }
+  );
+});
+
+//Updating system owner balance
+app.put('/updateSystemOwnerBalance', (req, res) => {
+  const newQuantity = req.body.updated_System_Owner_Balance;
+
+  // Update the product quantity in the database
+  const sql = 'UPDATE account SET Balance = ? WHERE Roll = "Admin"';
+  connection.query(sql, [newQuantity], (err, result) => {
+    if (err) {
+      console.error('Error updating System owner balance:', err);
+      res.status(500).send('Error updating System owner balance:');
+    } else {
+      res.status(200).send('System owner balance updated successfully');
+    }
+  });
+});
+
+//Chang product status
+app.put("/changeProductStatusInCart", (req, res) => {
+  const productIdInCart = req.body.productIdInCart;
+  const sql = "UPDATE cart SET status = ? WHERE Id = ?";
+  
+  connection.query(sql, ['paid!', productIdInCart], (err, result) => {
+    if (err) {
+      console.error("Error changing product status:", err);
+      res.status(500).send("Error changing product status");
+    } else {
+      res.status(200).send("Product status changed successfully");
+    }
+  });
+});
+
+//Delete from carts table
+
+app.delete('/deleteFromCart/:productId/:productOwner', (req, res) => {
+  const productId = req.params.productId;
+  const productOwner = req.params.productOwner;
+
+  // Delete the product from the cart in the database
+  const sql = 'DELETE FROM cart WHERE Id = ? AND ProductOwner = ?';
+  connection.query(sql, [productId, productOwner], (err, result) => {
+    if (err) {
+      console.error('Error deleting product from cart:', err);
+      res.status(500).json({ error: 'Error deleting product from cart' });
+    } else {
+      res.status(200).json({ message: 'Product deleted from cart successfully' });
+    }
+  });
+});
+
+	
+// get product quantity from products table
+app.get('/getProductQuantity/:productId/:productOwner', (req, res) => {
+  const productId = req.params.productId;
+  const productOwner = req.params.productOwner;
+
+  const sql = 'SELECT Produt_Quantity FROM products WHERE Id = ? AND ProductOwner = ?';
+  connection.query(sql, [productId, productOwner], (err, result) => {
+    if (err) {
+      console.error('Error retrieving product quantity:', err);
+      res.status(500).send('Error retrieving product quantity');
+    } else {
+      if (result.length > 0) {
+        const productQuantity = result[0].Produt_Quantity; // Fix the field name here
+        res.status(200).json({ quantity: productQuantity });
+      } else {
+        res.status(404).send('Product not found');
+      }
+    }
+  });
+});
+
+
+	// updating product quantity in products table
+  app.put('/updateProductQuantity/:productId/:productOwner/:productQuantity', (req, res) => {
+  const productId = req.params.productId;
+  const productOwner = req.params.productOwner;
+  const productQuantity = req.params.productQuantity;
+
+  // Update the product quantity in the products table
+  const sql = 'UPDATE products SET Produt_Quantity = ? WHERE Id = ? AND ProductOwner = ?';
+  connection.query(sql, [productQuantity, productId, productOwner], (err, result) => {
+    if (err) {
+      console.error('Error updating product quantity:', err);
+      res.status(500).send('Error updating product quantity');
+    } else {
+      res.status(200).send('Product quantity updated successfully');
     }
   });
 });
