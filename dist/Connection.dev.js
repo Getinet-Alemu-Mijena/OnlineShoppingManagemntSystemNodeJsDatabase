@@ -613,4 +613,67 @@ app.put('/updateProductQuantity/:productId/:productOwner/:productQuantity', func
       res.status(200).send('Product quantity updated successfully');
     }
   });
+}); //Update user profile
+
+app.put("/update-user/:userId", function (req, res) {
+  var userId = req.params.userId;
+  var updatedUser = req.body;
+  connection.query("UPDATE account SET ? WHERE Id = ?", [updatedUser, userId], function (error, results) {
+    if (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({
+        error: "An error occurred while updating the user."
+      });
+    } else {
+      console.log("User updated successfully");
+      res.status(200).json({
+        message: "User updated successfully"
+      });
+    }
+  });
+}); //Update sub user profile
+
+app.put("/update-user-picture/:userId", function (req, res) {
+  var userId = req.params.userId;
+  var updatedUser = req.body;
+  connection.query("UPDATE account SET ? WHERE Id = ?", [updatedUser, userId], function (error, results) {
+    if (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({
+        error: "An error occurred while updating the user."
+      });
+    } else {
+      // console.log("User updated successfully");
+      res.status(200).json({
+        message: "User updated successfully"
+      });
+    }
+  });
+}); // updateUserProfilePicture
+
+app.post("/updateUserProfilePicture", upload.single("file"), function (req, res) {
+  if (!req.file) {
+    return res.status(400).send("No file uploaded.");
+  }
+
+  res.send("File uploaded successfully.");
+}); //get user detail
+
+app.get("/userDetail", function (req, res) {
+  var userId = req.query.id;
+  connection.query("SELECT * FROM account WHERE Id = '".concat(userId, "'"), function (error, results) {
+    if (error) {
+      res.status(500).json({
+        error: 'Internal Server Error'
+      });
+    } else {
+      if (results.length > 0) {
+        res.json(results[0]);
+      } else {
+        res.status(404).json({
+          message: 'User not found'
+        });
+      }
+    }
+  });
 });
