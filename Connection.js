@@ -97,7 +97,7 @@ app.get("/loginCheck/:userName/:password", (req, res) => {
   const username = req.params.userName;
 
   connection.query(
-    `SELECT * FROM account WHERE  User_Name = '${username}' AND Password = '${Pass_word}'`,
+    `SELECT * FROM account WHERE  User_Name = '${username}' AND Password = '${Pass_word}' AND Status = '1'`,
     (error, results) => {
       if (error) throw error;
       if (results.length > 0) {
@@ -804,8 +804,247 @@ app.get("/userDetail", (req, res) => {
 });
 
 
+//Code to display all the products to home page
+
+app.get("/getHomePageProducts", (req, res) => {
+  connection.query(
+    `SELECT Id, Product_Name, Product_Type, Produt_Price, Produt_Quantity, Product_Brand, Product_Model, ProdutImage, ProductOwner FROM products`,
+    (error, results) => {
+      if (error) {
+        res.status(500).json({
+          error: 'Internal Server Error'
+        });
+      } else {
+        res.json(results);
+      }
+    }
+  );
+});
 
 
+// Add preferences to the table
+app.post("/addPreferences", function(req, res) {
+  let {
+    UserId,
+    product_Category,
+    productBrand,
+    productType,
+    productSize,
+    productPrice,
+    productColor,
+    productShipping,
+    notificationPreferences,
+    promotionsAndOffers
+  } = req.body;
 
+  connection.query(
+    "INSERT INTO `preferences`(`UserId`, `ProductCategory`, `ProductBrand`, `ProductType`, `ProductSize`, `ProductColor`, `ProductPrice`, `PrefferedShipping`, `Notification`, `Promotion`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    [
+      UserId,
+      product_Category,
+      productBrand,
+      productType,
+      productSize,
+      productColor,
+      productPrice,
+      productShipping,
+      notificationPreferences,
+      promotionsAndOffers
+    ],
+    function(error, results) {
+      if (error) {
+        console.error("Error", error);
+        res.status(500).json({ message: "Error adding preference" });
+      } else {
+        res.json({ message: "Preference added successfully" });
+      }
+    }
+  );
+});
 
+// Recommendation to the user
 
+app.get("/recommendationToTheUser/:userId", function(request, response) {
+  const user_Id = request.params.userId;
+
+  connection.query(   
+    `SELECT * FROM preferences WHERE UserId = '${user_Id}'`,
+    (error, result) => {
+      if (error) {
+        console.error(error);
+        response.status(500).json({ message: "Error retrieving recommendations" });
+      } else {
+        response.json(result);
+      }
+    }
+  );
+});
+//back end code to display recommended product to the user
+app.get("/displayRecommendeProducts/:product_Category/:Product_Brand/:Product_Type/:Product_Size/:Product_Color/:Product_Price/:Preffered_Shipping/:Notification_/:Promotion_", function(request, response){
+  // const userId = request.params.User_Id;
+  const productCategory = request.params.product_Category;
+  const productBrand = request.params.Product_Brand;
+  const productType = request.params.Product_Type;
+  const productSize = request.params.Product_Size;
+  const productColor = request.params.Product_Color;
+  const productPrice = request.params.Product_Price;
+  const prefferedShipping = request.params.Preffered_Shipping;
+  const notification = request.params.Notification_;
+  const promotion = request.params.Promotion_;
+
+  connection.query(
+    `SELECT * FROM products WHERE ProductCategory = '${productCategory}' OR Product_Brand = '${productBrand}' OR Product_Type = '${productType}' OR Screen_Size	= '${productSize}' OR Produt_Price = '${productPrice}'`,
+    function(error, result){
+      if(error){
+        console.error("There is an error in your sql syntax such that", error);
+        response.status(500).json({message: "Error while retriving the result!"});
+      }else{
+        response.json(result);
+      }
+    }
+  );
+
+});
+
+// back end code to add products to products wish list
+
+app.post("/addToWishList", function(request, response){
+ let {
+  userId,
+  product_Owner,
+  product_Id,
+  ProdutPrice,
+  product_Category,
+  product_Type,
+  product_Name,
+  product_Image
+ } = request.body;
+
+ connection.query(
+  "INSERT INTO `product_wishlist` (`UserId`,	`ProductOwner`,	`ProductId`,	`ProductPrice`,	`ProductCategory`,	`ProductType`,	`ProductName`,	`ProductImage`) VALUES(?,?,?,?,?,?,?,?)",
+  [ userId,
+    product_Owner,
+    product_Id,
+    ProdutPrice,
+    product_Category,
+    product_Type,
+    product_Name,
+    product_Image],
+    function(error, result){
+     if(error){
+      console.error("Error", error);
+      response.status(500).json({message: "Something is an error"});
+     }
+     else{
+      // console.log(result);
+      response.status(201).send({message: "Product added to your wishlist successfully"});
+     }
+    }
+ );
+});
+
+// check wishlist table if product already exists
+app.get("/checkProductsInWishlist/:userId/:productId", function(request, response){
+  const userId = request.params.userId;
+  const productId = request.params.productId;
+
+  connection.query(
+    `SELECT * FROM product_wishlist WHERE ProductId = '${productId}' AND UserId = '${userId}'`,
+    function(error, result){
+      if(error) throw error;
+      if(result.length > 0){
+        response.json({message: "Product already exists"});
+        
+      }else{
+        response.json({message: "Product does not exists"});
+      }
+    }
+  );
+});
+
+// back end code to display wishlists to the user
+app.get("/displayWishListProduct/:userId", function(request,response){
+  const userId = request.params.userId;
+
+  connection.query(
+    `SELECT * FROM product_wishlist WHERE UserId = '${userId}'`,
+
+    function(error, result){
+      if(error){
+        console.log("Error", error);
+      }
+      else{
+        response.json(result);
+      }
+    }
+
+  );
+});
+
+// Back end code to display a user 
+
+// Back end implimentation to manage user
+
+app.get("/displayUser", function(request, response){
+  connection.query(
+    `SELECT * FROM account`,
+    function(error, result){
+     if(error){
+      console.error("Error",error);
+     }
+     else{
+      response.json(result);
+     }
+    }
+  );
+});
+
+//Delete from account table
+
+app.delete("/DeletUser/:userId", function(req, res){
+
+  const user_id = req.params.userId;
+  
+  connection.query(
+   `DELETE FROM account WHERE Id = '${user_id}'`,
+  function(error, result) {
+    if(error){
+      console.error("Error: ", error);
+      res.status(500).json({ error: 'Error deleting user from account' });
+    }else{
+      res.status(200).json({message: 'User deleted successfully'})
+    }
+  }
+ );
+});
+//update user status
+
+app.put("/ActivateUserStatus/:userId", function(req, res){
+ const user_id = req.params.userId;
+ const data = req.body.data;
+  connection.query(
+    `UPDATE account SET Status = '${data}' WHERE Id = '${user_id}'`,
+    function(error, result){
+      if(error){
+        console.error("Error", error);
+      }else{
+        res.status(200).json({message: 'User activated succsessufly!'});
+      }
+    }
+  );
+});
+
+app.put("/deActivateUserStatus/:userId", function(req, res){
+  const user_id = req.params.userId;
+  const data = req.body.data;
+   connection.query(
+     `UPDATE account SET Status = '${data}' WHERE Id = '${user_id}'`,
+     function(error, result){
+       if(error){
+         console.error("Error", error);
+       }else{
+         res.status(200).json({message: 'User deactivated successfully!'});
+       }
+     }
+   );
+ });

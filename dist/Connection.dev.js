@@ -82,7 +82,7 @@ app.get("/checkUsers/:firsname/:lastname/:phoneNumber", function (req, res) {
 app.get("/loginCheck/:userName/:password", function (req, res) {
   var Pass_word = req.params.password;
   var username = req.params.userName;
-  connection.query("SELECT * FROM account WHERE  User_Name = '".concat(username, "' AND Password = '").concat(Pass_word, "'"), function (error, results) {
+  connection.query("SELECT * FROM account WHERE  User_Name = '".concat(username, "' AND Password = '").concat(Pass_word, "' AND Status = '1'"), function (error, results) {
     if (error) throw error;
 
     if (results.length > 0) {
@@ -674,6 +674,189 @@ app.get("/userDetail", function (req, res) {
           message: 'User not found'
         });
       }
+    }
+  });
+}); //Code to display all the products to home page
+
+app.get("/getHomePageProducts", function (req, res) {
+  connection.query("SELECT Id, Product_Name, Product_Type, Produt_Price, Produt_Quantity, Product_Brand, Product_Model, ProdutImage, ProductOwner FROM products", function (error, results) {
+    if (error) {
+      res.status(500).json({
+        error: 'Internal Server Error'
+      });
+    } else {
+      res.json(results);
+    }
+  });
+}); // Add preferences to the table
+
+app.post("/addPreferences", function (req, res) {
+  var _req$body3 = req.body,
+      UserId = _req$body3.UserId,
+      product_Category = _req$body3.product_Category,
+      productBrand = _req$body3.productBrand,
+      productType = _req$body3.productType,
+      productSize = _req$body3.productSize,
+      productPrice = _req$body3.productPrice,
+      productColor = _req$body3.productColor,
+      productShipping = _req$body3.productShipping,
+      notificationPreferences = _req$body3.notificationPreferences,
+      promotionsAndOffers = _req$body3.promotionsAndOffers;
+  connection.query("INSERT INTO `preferences`(`UserId`, `ProductCategory`, `ProductBrand`, `ProductType`, `ProductSize`, `ProductColor`, `ProductPrice`, `PrefferedShipping`, `Notification`, `Promotion`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [UserId, product_Category, productBrand, productType, productSize, productColor, productPrice, productShipping, notificationPreferences, promotionsAndOffers], function (error, results) {
+    if (error) {
+      console.error("Error", error);
+      res.status(500).json({
+        message: "Error adding preference"
+      });
+    } else {
+      res.json({
+        message: "Preference added successfully"
+      });
+    }
+  });
+}); // Recommendation to the user
+
+app.get("/recommendationToTheUser/:userId", function (request, response) {
+  var user_Id = request.params.userId;
+  connection.query("SELECT * FROM preferences WHERE UserId = '".concat(user_Id, "'"), function (error, result) {
+    if (error) {
+      console.error(error);
+      response.status(500).json({
+        message: "Error retrieving recommendations"
+      });
+    } else {
+      response.json(result);
+    }
+  });
+}); //back end code to display recommended product to the user
+
+app.get("/displayRecommendeProducts/:product_Category/:Product_Brand/:Product_Type/:Product_Size/:Product_Color/:Product_Price/:Preffered_Shipping/:Notification_/:Promotion_", function (request, response) {
+  // const userId = request.params.User_Id;
+  var productCategory = request.params.product_Category;
+  var productBrand = request.params.Product_Brand;
+  var productType = request.params.Product_Type;
+  var productSize = request.params.Product_Size;
+  var productColor = request.params.Product_Color;
+  var productPrice = request.params.Product_Price;
+  var prefferedShipping = request.params.Preffered_Shipping;
+  var notification = request.params.Notification_;
+  var promotion = request.params.Promotion_;
+  connection.query("SELECT * FROM products WHERE ProductCategory = '".concat(productCategory, "' OR Product_Brand = '").concat(productBrand, "' OR Product_Type = '").concat(productType, "' OR Screen_Size\t= '").concat(productSize, "' OR Produt_Price = '").concat(productPrice, "'"), function (error, result) {
+    if (error) {
+      console.error("There is an error in your sql syntax such that", error);
+      response.status(500).json({
+        message: "Error while retriving the result!"
+      });
+    } else {
+      response.json(result);
+    }
+  });
+}); // back end code to add products to products wish list
+
+app.post("/addToWishList", function (request, response) {
+  var _request$body = request.body,
+      userId = _request$body.userId,
+      product_Owner = _request$body.product_Owner,
+      product_Id = _request$body.product_Id,
+      ProdutPrice = _request$body.ProdutPrice,
+      product_Category = _request$body.product_Category,
+      product_Type = _request$body.product_Type,
+      product_Name = _request$body.product_Name,
+      product_Image = _request$body.product_Image;
+  connection.query("INSERT INTO `product_wishlist` (`UserId`,	`ProductOwner`,	`ProductId`,	`ProductPrice`,	`ProductCategory`,	`ProductType`,	`ProductName`,	`ProductImage`) VALUES(?,?,?,?,?,?,?,?)", [userId, product_Owner, product_Id, ProdutPrice, product_Category, product_Type, product_Name, product_Image], function (error, result) {
+    if (error) {
+      console.error("Error", error);
+      response.status(500).json({
+        message: "Something is an error"
+      });
+    } else {
+      // console.log(result);
+      response.status(201).send({
+        message: "Product added to your wishlist successfully"
+      });
+    }
+  });
+}); // check wishlist table if product already exists
+
+app.get("/checkProductsInWishlist/:userId/:productId", function (request, response) {
+  var userId = request.params.userId;
+  var productId = request.params.productId;
+  connection.query("SELECT * FROM product_wishlist WHERE ProductId = '".concat(productId, "' AND UserId = '").concat(userId, "'"), function (error, result) {
+    if (error) throw error;
+
+    if (result.length > 0) {
+      response.json({
+        message: "Product already exists"
+      });
+    } else {
+      response.json({
+        message: "Product does not exists"
+      });
+    }
+  });
+}); // back end code to display wishlists to the user
+
+app.get("/displayWishListProduct/:userId", function (request, response) {
+  var userId = request.params.userId;
+  connection.query("SELECT * FROM product_wishlist WHERE UserId = '".concat(userId, "'"), function (error, result) {
+    if (error) {
+      console.log("Error", error);
+    } else {
+      response.json(result);
+    }
+  });
+}); // Back end code to display a user 
+// Back end implimentation to manage user
+
+app.get("/displayUser", function (request, response) {
+  connection.query("SELECT * FROM account", function (error, result) {
+    if (error) {
+      console.error("Error", error);
+    } else {
+      response.json(result);
+    }
+  });
+}); //Delete from account table
+
+app["delete"]("/DeletUser/:userId", function (req, res) {
+  var user_id = req.params.userId;
+  connection.query("DELETE FROM account WHERE Id = '".concat(user_id, "'"), function (error, result) {
+    if (error) {
+      console.error("Error: ", error);
+      res.status(500).json({
+        error: 'Error deleting user from account'
+      });
+    } else {
+      res.status(200).json({
+        message: 'User deleted successfully'
+      });
+    }
+  });
+}); //update user status
+
+app.put("/ActivateUserStatus/:userId", function (req, res) {
+  var user_id = req.params.userId;
+  var data = req.body.data;
+  connection.query("UPDATE account SET Status = '".concat(data, "' WHERE Id = '").concat(user_id, "'"), function (error, result) {
+    if (error) {
+      console.error("Error", error);
+    } else {
+      res.status(200).json({
+        message: 'User activated succsessufly!'
+      });
+    }
+  });
+});
+app.put("/deActivateUserStatus/:userId", function (req, res) {
+  var user_id = req.params.userId;
+  var data = req.body.data;
+  connection.query("UPDATE account SET Status = '".concat(data, "' WHERE Id = '").concat(user_id, "'"), function (error, result) {
+    if (error) {
+      console.error("Error", error);
+    } else {
+      res.status(200).json({
+        message: 'User deactivated successfully!'
+      });
     }
   });
 });
